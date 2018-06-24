@@ -2,14 +2,14 @@
 
 ## Motivation - Challenges with music identification
 
-At some point in every persons life they hear an awesome song for the first time and are curious to know what it's name is. I was in this situation more often than I'd like to admit. Not anymore!! [Shazam](https://www.shazam.com/) has been a great friend of mine since I first learnt about it in 2014. I was amazed by how easy identifying a new song has become. At the same time I wondered how they are able to achieve such speedy identification with a massive database of songs (>11 million songs) last I checked). Shazam uses some advanced music information retrieval techniques to achieve this but one can implement such music recognition for fun using Audio fingerprinting and Locality Sensitive Hashing.
+At some point in every persons life they hear an awesome song for the first time and are curious to know what it's name is. I was in this situation more often than I'd like to admit. Not anymore!! [Shazam](https://www.shazam.com/) has been a great friend of mine since I first learnt about it in 2014. I was amazed by how easy identifying a new song has become. At the same time I wondered how they are able to achieve such speedy identification with a massive database of songs (>11 million songs). Shazam uses some advanced music information retrieval techniques to achieve this but one can implement such music recognition for fun using Audio fingerprinting and Locality Sensitive Hashing.
 
 Audio finger printing is the process of identifying unique characteristics from a fixed duration audio stream. Such unique characteristics can be identified for all existing songs and stored in a database. When we hear a new song, we can extract similar characteristics from the recorded audio and compare against the database to identify the song. However, in practice there will be two challenges with this approach:
 
 1. High dimensionality of the unique characteristic/feature vector required to identify songs
 2. Comparison of the recorded audio features against features of all songs in the database is expensive in terms of time and memory
 
-The fist challenge can be addressed using a dimensionality reduction technique like PCA and the second using a combination of clustering and nearest neighbor search. Locality Sensitive Hashing (hereon referred to as LSH) can address both the challenges by
+The first challenge can be addressed using a dimensionality reduction technique like PCA and the second using a combination of clustering and nearest neighbor search. Locality Sensitive Hashing (hereon referred to as LSH) can address both the challenges by
 
 1. reducing the high dimensional features to smaller dimensions while preserving the differentiability
 2. grouping similar objects (songs in this case) into buckets
@@ -72,7 +72,7 @@ Columns of the random projection matrix **R** are called random vectors and the 
 
 ### LSH using Random Projection Method
 
-In this LSH implementation, we construct a table of all possible bins where each bin is made up of similar items. Each bin can be represented by a bitwise hash value, which is a number made up of sequence of 1's and 0's (Ex: 110110, 111001). In this representation, two observations with same bitwise hash are more likely to be similar than those with different hashes. Basic algorithm to generate a bitwise hash table is
+In this LSH implementation, we construct a table of all possible bins where each bin is made up of similar items. Each bin can be represented by a bitwise hash value, which is a number made up of a sequence of 1's and 0's (Ex: 110110, 111001). In this representation, two observations with same bitwise hash values are more likely to be similar than those with different hashes. Basic algorithm to generate a bitwise hash table is
 
 1. Create `k` random vectors of length `d` each, where `k` is the size of bitwise hash value and `d` is the dimension of the feature vector.
 2. For each random vector, compute the dot product of the random vector and the observation. If the result of the dot product is positive, assign the bit value as 1 else 0
@@ -86,9 +86,6 @@ Below is a code snippet to construct such hash table
 
 ```python
 import numpy as np
-
-k = 8 # size of bitwise hash
-d = 100 # dimensions of original data
     
 class HashTable:
     def __init__(self, hash_size, inp_dimensions):
@@ -99,7 +96,7 @@ class HashTable:
         
     def generate_hash(self, inp_vector):
         bools = (np.dot(inp_vector, self.projections.T) > 0).astype('int')
-        return int(''.join(bools.astype('str')))
+        return ''.join(bools.astype('str'))
 
     def __setitem__(self, inp_vec, label):
         hash_value = self.generate_hash(inp_vec)
@@ -109,7 +106,30 @@ class HashTable:
     def __getitem__(self, inp_vec):
         hash_value = self.generate_hash(inp_vec)
         return self.hash_table.get(hash_value, [])
+        
+hash_table = HashTable(hash_size=4, inp_dimensions=20)
 ```
+
+**Consider the following example where our goal is to find similar vectors by creating 2 bit hash values for three 5-dimensional input vectors.**
+
+> <img src="images/vecs.png" title="vecs" />
+
+Random projection vectors can be generated from gaussian distribution (zero mean and unit variance).
+
+> <img src="images/projections.png" title="projs" />
+
+Taking a dot product with the projection matrix and computing hash values for the three vectors can be seen in the following images.
+
+> <img src="images/vec1.png" title="vec1" />
+
+> <img src="images/vec2.png" title="vec2" />
+
+> <img src="images/vec3.png" title="vec3" />
+
+We can infer from the above example that vec1 and vec2 are more likely to be similar (same hash value) than vec1 and vec3 or vec2 and vec3. We can observe that the cosine similarity is maximum for vec1 and vec2 compared to other two combinations, which corroborates the output of random projection method.
+
+> <img src="images/cosine.png" title="cosine" />
+
 
 The intuition behind this idea is that if two points are aligned completely, i.e., have perfect correlation from origin, they should be in the same hash bin. Similarly, two points separated by 180 degrees will be in different bins and two points 90 degrees apart have 50% probability to be in same bins.
 
@@ -164,5 +184,4 @@ You're awesome for taking time out of your day to read this! If you found this h
 - [LSH applied to Music Information Retrieval](https://www.youtube.com/watch?v=SghMq1xBJPI)
 - [LSH applied to document similarity detection](http://joyceho.github.io/cs584_s16/slides/lsh-11.pdf)
 - [Music Search using LSH](https://github.com/stevetjoa/musicsearch)
-- [List of Audio File Databases](http://www.audiocontentanalysis.org/data-sets/)
 - [Free Music Archive](https://github.com/mdeff/fma)
