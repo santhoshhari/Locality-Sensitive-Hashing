@@ -1,6 +1,6 @@
 # Locality Sensitive Hashing
 
-## Motivation
+## Motivation - Challenges with music identification
 
 At some point in every persons life they hear an awesome song for the first time and are curious to know what it's name is. I was in this situation more often than I'd like to admit. Not anymore!! [Shazam](https://www.shazam.com/) has been a great friend of mine since I first learnt about it in 2014. I was amazed by how easy identifying a new song has become. At the same time I wondered how they are able to achieve such speedy identification with a massive database of songs (>11 million songs) last I checked). Shazam uses some advanced music information retrieval techniques to achieve this but one can implement such music recognition for fun using Audio fingerprinting and Locality Sensitive Hashing.
 
@@ -64,22 +64,102 @@ Random projection is a technique for representing high-dimensional data in low-d
  
 Above statement is an interpretaion of the [Johnson-Lindenstrauss lemma](https://en.wikipedia.org/wiki/Random_projection).
 
-Consider a high-dimensional data represented as a matrix $D$ with `n` observations (columns of matrix) and `d` features (rows of the matrix). It can be projected onto a lower dimensional space with `k` dimensions, where `k<<d`, using a random projection matrix $R$. Mathematically, the lower dimensional representation $P$ can be obtained as
+Consider a high-dimensional data represented as a matrix **D**, with `n` observations (columns of matrix) and `d` features (rows of the matrix). It can be projected onto a lower dimensional space with `k` dimensions, where `k<<d`, using a random projection matrix **R**. Mathematically, the lower dimensional representation **P** can be obtained as
 
 <img src="https://latex.codecogs.com/gif.latex?\begin{bmatrix}&space;&&space;&&space;\\&space;&&space;Projected&space;(P)&space;&&space;\\&space;&&space;&&space;\end{bmatrix}_{k&space;\times&space;n}&space;=&space;\begin{bmatrix}&space;&&space;&&space;\\&space;&&space;Random&space;(R)&space;&&space;\\&space;&&space;&&space;\end{bmatrix}_{k&space;\times&space;d}&space;\begin{bmatrix}&space;&&space;&&space;\\&space;&&space;Original&space;(D)&space;&&space;\\&space;&&space;&&space;\end{bmatrix}_{d&space;\times&space;n}" title="matrix_lsh"/>
 
-Columns of the random projection matrix $R$ are called random vectors and the elements of these random vectors are drawn independently from gaussian distribution (zero mean, unit variance).
+Columns of the random projection matrix **R** are called random vectors and the elements of these random vectors are drawn independently from gaussian distribution (zero mean, unit variance).
 
 ### LSH using Random Projection Method
 
+In this LSH implementation, we construct a table of all possible bins where each bin is made up of similar items. Each bin can be represented by a bitwise hash value, which is a number made up of sequence of 1's and 0's (Ex: 110110, 111001). In this representation, two observations with same bitwise hash are more likely to be similar than those with different hashes. Basic algorithm to generate a bitwise hash table is
 
-Hash Function - Random projections - For the input feature vector (q of dimension L) take inner products with random vectors (p, k in number) and take the sign of the inner product (is p aligned with q on one side of space?). What are random projections - Gaussian random vectors with independent elements (zero mean and unit variance). L and k are tuned to adjust the tradeoff between recall and precision.
+1. Create `k` random vectors of length `d` each, where `k` is the size of bitwise hash value and `d` is the dimension of the feature vector.
+2. For each random vector, compute the dot product of the random vector and the observation. If the result of the dot product is positive, assign the bit value as 1 else 0
+3. Concatenate all the bit values computed for `k` dot products
+4. Repeat the above two steps for all observations to compute hash values for all observations
+5. Group observations with same hash values together to create a LSH table
 
-Why Gaussian and Why Random - If two points are aligned completely, have perfect correlation from origin, this hash construction imply they'll be in same hash bin. Similarly, two points separated by $$180^{\circ}$$ will be in different bins and two points $$90^{\circ}$$ apart have 50% probability to be in same bins. k-bit hash requires k projections. We can also have several hash tables (multiple k-bit hashes) => we define two hashes to be same if all hashes matches for at least one table. Multiple tables generalizes the space better and amortizes the contribution of bad random vectors.
-*Does gaussian mean orthogonal? Low probability they are correlated*
+<img src="images/HashTable.png" title="hashtable">
+
+Below is a code snippet to construct such hash table
+
+```python
+import numpy as np
+
+k = 8 # size of bitwise hash
+d = 100 # dimensions of original data
+    
+class HashTable:
+    def __init__(self, hash_size, inp_dimensions):
+        self.hash_size = hash_size
+        self.inp_dimensions = inp_dimensions
+        self.hash_table = dict()
+        self.projections = np.random.randn(self.hash_size, inp_dimensions)
+        
+    def generate_hash(self, inp_vector):
+        bools = (np.dot(inp_vector, self.projections.T) > 0).astype('int')
+        return int(''.join(bools.astype('str')))
+
+    def __setitem__(self, inp_vec, label):
+        hash_value = self.generate_hash(inp_vec)
+        self.hash_table[hash_value] = self.hash_table\
+            .get(hash_value, list()) + [label]
+        
+    def __getitem__(self, inp_vec):
+        hash_value = self.generate_hash(inp_vec)
+        return self.hash_table.get(hash_value, [])
+```
+
+The intuition behind this idea is that if two points are aligned completely, i.e., have perfect correlation from origin, they should be in the same hash bin. Similarly, two points separated by 180 degrees will be in different bins and two points 90 degrees apart have 50% probability to be in same bins.
+
+In addition, because of the randomness, it is not likely that all similar items are grouped correctly. To overcome this limitaion a common practice is to create multiple hash tables and consider an observation `a` to be similar to `b`, if they are in same bin in atleast one of the tables. It is also worth noting that multiple tables generalize the high dimensional space better and amortize the contribution of bad random vectors.
+
+In practise, the number of hash tables and size of the hash value (k) are tuned to adjust the trade-off between recall and precision.
+
+Below is the code snippet to construct multiple hash tables
+
+```python
+class LSH:
+    def __init__(self, num_tables, hash_size, inp_dimensions):
+        self.num_tables = num_tables
+        self.hash_size = hash_size
+        self.inp_dimensions = inp_dimensions
+        self.hash_tables = list()
+        for i in range(self.num_tables):
+            self.hash_tables.append(HashTable(self.hash_size, self.inp_dimensions))
+    
+    def __setitem__(self, inp_vec, label):
+        for table in self.hash_tables:
+            table[inp_vec] = label
+    
+    def __getitem__(self, inp_vec):
+        results = list()
+        for table in self.hash_tables:
+            results.extend(table[inp_vec])
+        return list(set(results))
+```
+
+## Back to music identification
+
+Going back to the problem of music identification, the general algorithm would be:
+
+1. Construct a feature vector for all the songs in the database
+2. Construct LSH Hash tables using the above defined classes with appropriate choice for number of tables and hash size.
+3. For a newly recorded audio, construct the feature vector and query the LSH tables
+4. Compare the feature vector of the recorded audio with the matches returned in step 3. Metrics for comparison can be L2 distance, cosine similiraty or Jaccard similarity, depending on the elements of feature vector.
+5. Return the result that has lowest/highest metric value (depending on the chosen metric) as the match
+
+In step 4, the comparision for similar song identification is performed on a subset of data (much smaller than the entire database). This is the main reason for speedy computations. In addition, none of the hash tables are storing the high-dimensional feature vector, saving significant memory. Lastly, step 5 can be modified to make this a recommendation system.
+
+## Conclusion
+
+I hope you got an idea of what LSH is and how it realizes efficiencies in memory and number of computations performed.
+
+You're awesome for taking time out of your day to read this! If you found this helpful, please consider sharing.
 
 
-## Resources
+## Additional Resources
 - [Random Projection](https://nbviewer.jupyter.org/github/lindarliu/blog/blob/master/Random%20Projection%20and%20its%20application.ipynb)
 - [LSH applied to Music Information Retrieval](https://www.youtube.com/watch?v=SghMq1xBJPI)
 - [LSH applied to document similarity detection](http://joyceho.github.io/cs584_s16/slides/lsh-11.pdf)
