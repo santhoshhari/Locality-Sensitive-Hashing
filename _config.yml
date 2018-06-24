@@ -2,4 +2,5 @@ theme: jekyll-theme-cayman
 title: Locality Sensitive Hashing
 
 # Conversion
-markdown:    kramdown
+markdown: kramdown
+mathjax: true
