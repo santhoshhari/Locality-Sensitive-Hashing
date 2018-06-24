@@ -64,28 +64,11 @@ Random projection is a technique for representing high-dimensional data in low-d
  
 Above statement is an interpretaion of the [Johnson-Lindenstrauss lemma](https://en.wikipedia.org/wiki/Random_projection).
 
-Consider a high-dimensional data represented as a matrix $$D$$ with `n` observations (columns of matrix) and `d` features (rows of the matrix). It can be projected onto a lower dimensional space with `k` dimensions, where `k<<d`, using a random projection matrix $$R$$. Mathematically, the lower dimensional representation $$P$$ can be obtained as
+Consider a high-dimensional data represented as a matrix $D$ with `n` observations (columns of matrix) and `d` features (rows of the matrix). It can be projected onto a lower dimensional space with `k` dimensions, where `k<<d`, using a random projection matrix $R$. Mathematically, the lower dimensional representation $P$ can be obtained as
 
-$$
-\left[\begin{array}
-{rrr}
- &  &  \\
- & Projected(P) &  \\
- &  & 
-\end{array}\right]_{ k \times n} = \left[\begin{array}
-{rrr}
- &  &  \\
- & Random(R) &  \\
- &  & 
-\end{array}\right]_{ k \times d}\left[\begin{array}
-{rrr}
- &  &  \\
- & Original(D) &  \\
- &  & 
-\end{array}\right]_{ d \times n}
-$$
+<img src="https://latex.codecogs.com/gif.latex?\begin{bmatrix}&space;&&space;&&space;\\&space;&&space;Projected&space;(P)&space;&&space;\\&space;&&space;&&space;\end{bmatrix}_{k&space;\times&space;n}&space;=&space;\begin{bmatrix}&space;&&space;&&space;\\&space;&&space;Random&space;(R)&space;&&space;\\&space;&&space;&&space;\end{bmatrix}_{k&space;\times&space;d}&space;\begin{bmatrix}&space;&&space;&&space;\\&space;&&space;Original&space;(D)&space;&&space;\\&space;&&space;&&space;\end{bmatrix}_{d&space;\times&space;n}" title="matrix_lsh"/>
 
-Columns of the random projection matrix $$R$$ are called random vectors and the elements of these random vectors are drawn independently from gaussian distribution (zero mean, unit variance).
+Columns of the random projection matrix $R$ are called random vectors and the elements of these random vectors are drawn independently from gaussian distribution (zero mean, unit variance).
 
 ### LSH using Random Projection Method
 
