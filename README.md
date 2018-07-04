@@ -4,7 +4,7 @@
 
 At some point in every persons life they hear an awesome song for the first time and are curious to know what it's name is. I was in this situation more often than I'd like to admit. Not anymore!! [Shazam](https://www.shazam.com/) has been a great friend of mine since I first learnt about it in 2014. I was amazed by how easy identifying a new song has become. At the same time I wondered how they are able to achieve such speedy identification with a massive database of songs (>11 million songs). Shazam uses some advanced music information retrieval techniques to achieve this but one can implement such music recognition for fun using Audio fingerprinting and Locality Sensitive Hashing.
 
-Audio finger printing is the process of identifying unique characteristics from a fixed duration audio stream. Such unique characteristics can be identified for all existing songs and stored in a database. When we hear a new song, we can extract similar characteristics from the recorded audio and compare against the database to identify the song. However, in practice there will be two challenges with this approach:
+Audio fingerprinting is the process of identifying unique characteristics from a fixed duration audio stream. Such unique characteristics can be identified for all existing songs and stored in a database. When we hear a new song, we can extract similar characteristics from the recorded audio and compare against the database to identify the song. However, in practice there will be two challenges with this approach:
 
 1. High dimensionality of the unique characteristic/feature vector required to identify songs
 2. Comparison of the recorded audio features against features of all songs in the database is expensive in terms of time and memory
@@ -12,7 +12,7 @@ Audio finger printing is the process of identifying unique characteristics from 
 The first challenge can be addressed using a dimensionality reduction technique like PCA and the second using a combination of clustering and nearest neighbor search. Locality Sensitive Hashing (hereon referred to as LSH) can address both the challenges by
 
 1. reducing the high dimensional features to smaller dimensions while preserving the differentiability
-2. grouping similar objects (songs in this case) into buckets
+2. grouping similar objects (songs in this case) into same buckets with high probability
 
 ## Applications of LSH
 
@@ -24,16 +24,15 @@ Before jumping into understanding LSH, it is worth noting that the application a
 - Genome-wide association study
 - Image similarity identification (VisualRank)
 - Audio similarity identification
-- Audio fingerprint
 - Digital video fingerprinting
 
 Uber used LSH to detect [platform abuses](https://eng.uber.com/lsh/) (fake accounts, payment fraud, etc.). A Shazam styled app or Youtube sized recommender system can be built using LSH.
 
 ## What is LSH?
 
-LSH is a hashing based algorithm to identify approximate nearest neighbors. In the normal nearest neighbor problem, there are a bunch of points (let's refer to these as training set) in space and given a new point, objective is to identify the point in training set closest to the given point. Complexity of such process is linear [O(N), where N is the size of training set] . An approximate nearest neighboring algorithm tries to reduce this complexity to sub-linear (less than linear but can be anything). Sub-linear complexity is achieved by reducing the number of comparisons needed to find similar items.
+LSH is a hashing based algorithm to identify approximate nearest neighbors. In the normal nearest neighbor problem, there are a bunch of points (let's refer to these as training set) in space and given a new point, objective is to identify the point in training set closest to the given point. Complexity of such process is linear [for those familiar with Big-O notation, O(N), where N is the size of training set]. An approximate nearest neighboring algorithm tries to reduce this complexity to sub-linear (less than linear but can be anything). Sub-linear complexity is achieved by reducing the number of comparisons needed to find similar items.
 
-LSH works on the principle that if there are two points in  feature space closer to each other, they are very likely to have same hash (reduced representation of data). LSH primarily differs from conventional hashing (aka cryptographic) in the sense that cryptographic hashing tries to avoid collisions but LSH aims to maximize collisions for similar points. In cryptographic hashing a minor perturbation to the input can alter the hash significantly but in LSH, slight distortions should be ignored so that the main content can be identified easily. The hash collisions make it possible for similar items to have a high probability of having the same hash value.
+LSH works on the principle that if there are two points in  feature space closer to each other, they are very likely to have same hash (reduced representation of data). LSH primarily differs from conventional hashing (aka cryptographic) in the sense that cryptographic hashing tries to avoid collisions but LSH aims to maximize collisions for similar points. In cryptographic hashing a minor perturbation to the input can alter the hash significantly but in LSH, slight distortions would be ignored so that the main content can be identified easily. The hash collisions make it possible for similar items to have a high probability of having the same hash value.
 
 > Locality Sensitive Hashing (LSH) is a generic hashing technique that aims, as the name suggests, to preserve the local relations of the data while significantly reducing the dimensionality of the dataset.
 
@@ -131,7 +130,7 @@ We can infer from the above example that vec1 and vec2 are more likely to be sim
 > <img src="images/cosine.png" title="cosine" />
 
 
-The intuition behind this idea is that if two points are aligned completely, i.e., have perfect correlation from origin, they should be in the same hash bin. Similarly, two points separated by 180 degrees will be in different bins and two points 90 degrees apart have 50% probability to be in same bins.
+The intuition behind this idea is that if two points are aligned completely, i.e., have perfect correlation from origin, they will be in the same hash bin. Similarly, two points separated by 180 degrees will be in different bins and two points 90 degrees apart have 50% probability to be in same bins.
 
 In addition, because of the randomness, it is not likely that all similar items are grouped correctly. To overcome this limitaion a common practice is to create multiple hash tables and consider an observation `a` to be similar to `b`, if they are in same bin in atleast one of the tables. It is also worth noting that multiple tables generalize the high dimensional space better and amortize the contribution of bad random vectors.
 
